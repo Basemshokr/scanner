@@ -1,0 +1,198 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <cctype>
+
+enum TokenType {
+    KEYWORD,
+    IDENTIFIER,
+    OPERATOR,
+    NUMERIC_CONSTANT,
+    CHARACTER_CONSTANT,
+    SPECIAL_CHARACTER,
+    COMMENT,
+    WHITESPACE,
+    END_OF_FILE
+};
+
+struct Token {
+    TokenType type;
+    std::string lexeme;
+};
+
+class Scanner {
+public:
+    Scanner(const std::string& input) : input_(input), position_(0) {
+        // Define the keywords
+        keywords_ = {"if", "else", "while", "for", "int", "float", "char", "void", "return"};
+    }
+
+    Token getNextToken() {
+        skipWhitespace();
+
+        if (position_ >= input_.size()) {
+            return {END_OF_FILE, ""};
+        }
+
+        char currentChar = input_[position_];
+
+        if (isalpha(currentChar) || currentChar == '_') {
+            std::string lexeme;
+            lexeme += currentChar;
+            position_++;
+
+            while (position_ < input_.size() && (isalnum(input_[position_]) || input_[position_] == '_')) {
+                lexeme += input_[position_];
+                position_++;
+            }
+
+            if (isKeyword(lexeme)) {
+                return {KEYWORD, lexeme};
+            } else {
+                return {IDENTIFIER, lexeme};
+            }
+        }
+
+        if (isdigit(currentChar)) {
+            std::string lexeme;
+            lexeme += currentChar;
+            position_++;
+
+            while (position_ < input_.size() && isdigit(input_[position_])) {
+                lexeme += input_[position_];
+                position_++;
+            }
+
+            return {NUMERIC_CONSTANT, lexeme};
+        }
+
+        if (currentChar == '\'' || currentChar == '"') {
+            std::string lexeme;
+            lexeme += currentChar;
+            position_++;
+
+            while (position_ < input_.size() && input_[position_] != currentChar) {
+                lexeme += input_[position_];
+                position_++;
+            }
+
+            if (position_ < input_.size() && input_[position_] == currentChar) {
+                lexeme += input_[position_];
+                position_++;
+            }
+
+            return {CHARACTER_CONSTANT, lexeme};
+        }
+
+        std::string lexeme;
+        lexeme += currentChar;
+        position_++;
+
+        if (isOperator(lexeme)) {
+            return {OPERATOR, lexeme};
+        }
+
+        if (isSpecialCharacter(lexeme)) {
+            return {SPECIAL_CHARACTER, lexeme};
+        }
+
+        if (lexeme == "/" && position_ < input_.size() && input_[position_] == '/') {
+            while (position_ < input_.size() && input_[position_] != '\n') {
+                lexeme += input_[position_];
+                position_++;
+            }
+
+            return {COMMENT, lexeme};
+        }
+
+        return {SPECIAL_CHARACTER, lexeme};
+    }
+
+private:
+    std::string input_;
+    size_t position_;
+    std::vector<std::string> keywords_;
+
+    void skipWhitespace() {
+        while (position_ < input_.size() && std::isspace(input_[position_])) {
+            position_++;
+        }
+    }
+
+    bool isKeyword(const std::string& lexeme) {
+        for (const auto& keyword : keywords_) {
+            if (lexeme == keyword) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool isOperator(const std::string& lexeme) {
+        static const std::vector<std::string> operators = {
+            "+", "-", "*", "/", "=", "==", "!=", "<", ">", "<=", ">=", "&&", "||"
+        };
+
+        for (const auto& op : operators) {
+            if (lexeme == op) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool isSpecialCharacter(const std::string& lexeme) {
+        static const std::vector<std::string> specialCharacters = {
+            "(", ")", "{", "}", "[", "]", ",", ";"
+        };
+
+        for (const auto& sc : specialCharacters) {
+            if (lexeme == sc) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
+int main() {
+    std::string input;
+    std::cout << "Enter input: ";
+    std::getline(std::cin, input);
+
+    Scanner scanner(input);
+Token token;
+    while ((token = scanner.getNextToken()).type != END_OF_FILE) {
+        switch (token.type) {
+            case KEYWORD:
+                std::cout << "Keyword: " << token.lexeme << std::endl;
+                break;
+            case IDENTIFIER:
+                std::cout << "Identifier: " << token.lexeme << std::endl;
+                break;
+            case OPERATOR:
+                std::cout << "Operator: " << token.lexeme << std::endl;
+                break;
+            case NUMERIC_CONSTANT:
+                std::cout << "Numeric Constant: " << token.lexeme << std::endl;
+                break;
+            case CHARACTER_CONSTANT:
+                std::cout << "Character Constant: " << token.lexeme << std::endl;
+                break;
+            case SPECIAL_CHARACTER:
+                std::cout << "Special Character: " << token.lexeme << std::endl;
+                break;
+            case COMMENT:
+                std::cout << "Comment: " << token.lexeme << std::endl;
+                break;
+            case WHITESPACE:
+                // Skip printing whitespace tokens
+                break;
+            default:
+                std::cout << "Unknown token" << std::endl;
+                break;
+        }
+    }
+
+    return 0;
+}
